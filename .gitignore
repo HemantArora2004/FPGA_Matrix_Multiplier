@@ -1,0 +1,5 @@
+*.log
+*backup.log
+*.jou
+*backup.jou
+TCL\.Xil
