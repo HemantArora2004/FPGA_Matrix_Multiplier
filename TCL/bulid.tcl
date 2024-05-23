@@ -4,6 +4,8 @@ set project_path "C:/Users/Hemant/Documents/Programming/XilinxFPGA/Matrix_Multip
 # Define a list of Verilog files to synthesize
 set verilog_files {
     "C:/Users/Hemant/Documents/Programming/XilinxFPGA/Matrix_Multiplier/Matrix_Multiplier.GitHub/Source/Matrix_Multiplier.sv"
+    "C:/Users/Hemant/Documents/Programming/XilinxFPGA/Matrix_Multiplier/Matrix_Multiplier.GitHub/Source/Single_Port_RAM.sv"
+
 }
 
 # Define the path to your constraints file
