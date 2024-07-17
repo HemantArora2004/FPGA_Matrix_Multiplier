@@ -1,25 +1,31 @@
 `timescale 1ns / 1ps
-module Single_Port_RAM #(
+module dual_port_ram #(
     parameter  MEM_DEPTH = 256,
     parameter  MEM_WIDTH = 32
 )(
-    input logic clk,
+    input logic wr_clk,
+    input logic rd_clk,
     input logic reset,
-    input logic [$clog2(MEM_DEPTH)-1:0] address,
-    output logic [MEM_WIDTH-1:0] write_data, read_data,
+    input logic [$clog2(MEM_DEPTH)-1:0] wr_address,
+    input logic [$clog2(MEM_DEPTH)-1:0] rd_address,
+    input logic [MEM_WIDTH-1:0] write_data,
+    output logic [MEM_WIDTH-1:0] read_data,
     input logic write_en
 
 );
-    
+
+// Memory array    
 logic [MEM_WIDTH-1:0] memory [MEM_DEPTH];
 
- 
-always @(posedge  clk) begin
+always @(posedge  wr_clk) begin
     if(write_en) begin
-    memory[address] <= write_data;
+    memory[wr_address] <= write_data;
     end
-    read_data <= memory[address];
 end // always
+
+always @(posedge rd_clk) begin
+    read_data <= memory[rd_address];
+end //always 
 
 endmodule
 
