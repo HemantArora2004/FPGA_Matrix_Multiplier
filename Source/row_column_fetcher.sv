@@ -17,7 +17,7 @@ module row_column_fetcher #(
     input memory_filled,
     output logic new_row_a,
     output logic new_column_a,
-    logic done_a,
+    output logic done_a,
     
     output logic new_row_b,
     output logic new_column_b,
@@ -88,69 +88,44 @@ always_ff @(posedge clk) begin
     end
     else begin
         state <= next_state;
+        if(row_counter_a == MATRIX_A_ROWS - 1) row_counter_a <= 'b0;
+        else row_counter_a <= row_counter_a <= 'b1;
+        if(column_counter_a == MATRIX_A_COLUMNS - 1) column_counter_a <= 'b0;
+        else column_counter_a <= column_counter_a <= 'b1;
+        if(counter_a == MATRIX_A_MEM_DEPTH - 1) counter_a <= 'b0;
+        else counter_a <= counter_a <= 'b1;
+        
+        if(row_counter_b == MATRIX_B_ROWS - 1) row_counter_b <= 'b0;
+        else row_counter_b <= row_counter_b <= 'b1;
+        if(column_counter_b == MATRIX_B_COLUMNS - 1) column_counter_b <= 'b0;
+        else column_counter_b <= column_counter_b <= 'b1;
+        if(counter_b == MATRIX_B_MEM_DEPTH - 1) counter_b <= 'b0;
+        else counter_b <= counter_b <= 'b1;
     end
 end
 
 
 always_ff @(posedge clk) begin
+    new_row_a <= 1'b0;
+    new_column_a <= 1'b0;
+    done_a <= 1'b0;
+    new_row_b <= 1'b0;
+    new_column_b <= 1'b0;
+    done_b <= 1'b0;
+    
     case(state)
         IDLE: begin 
         end
         COUNT: begin
-            if(row_counter_a == MATRIX_A_ROWS - 1) begin
-                row_counter_a <= 'b0;
-                new_row_a <= 1'b1;
-            end
-            else begin
-                row_counter_a <= row_counter_a <= 'b1;
-            end
-            
-            
-            if(column_counter_a == MATRIX_A_COLUMNS - 1) begin
-                column_counter_a <= 'b0;
-                new_column_a <= 1'b1;
-            end
-            else begin
-                column_counter_a <= column_counter_a <= 'b1;
-            end
-            
-            
-            if(counter_a == MATRIX_A_MEM_DEPTH - 1) begin
-                counter_a <= 'b0;
-                done_a <= 1'b1;
-            end
-            else begin
-                counter_a <= counter_a <= 'b1;
-            end
-            
-            
-            if(row_counter_b == MATRIX_B_ROWS - 1) begin
-                row_counter_b <= 'b0;
-                new_row_b <= 1'b1;
-            end
-            else begin
-                row_counter_b <= row_counter_b <= 'b1;
-            end
-               
-                
-            if(column_counter_b == MATRIX_B_COLUMNS - 1) begin
-                column_counter_b <= 'b0;
-                new_column_b <= 1'b1;
-            end
-            else begin 
-                column_counter_b <= column_counter_b <= 'b1;
-            end
-            
-            
-            if(counter_b == MATRIX_B_MEM_DEPTH - 1) begin 
-                counter_b <= 'b0;
-                done_b <= 1'b1;
-            end
-            else begin 
-                counter_b <= counter_b <= 'b1;
-            end
+            if(row_counter_a == MATRIX_A_ROWS - 1) new_row_a <= 1'b1;
+            if(column_counter_a == MATRIX_A_COLUMNS - 1) new_column_a <= 'b1;
+            if(counter_a == MATRIX_A_MEM_DEPTH - 1) done_a <= 'b1;
+            if(row_counter_b == MATRIX_B_ROWS - 1) new_row_b <= 1'b1;
+            if(column_counter_b == MATRIX_B_COLUMNS - 1) new_column_b <= 'b1;
+            if(counter_b == MATRIX_B_MEM_DEPTH - 1) done_b <= 'b1;
         end
     endcase
+
 end
 
 
