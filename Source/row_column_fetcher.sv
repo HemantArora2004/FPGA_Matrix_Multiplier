@@ -15,15 +15,7 @@ module row_column_fetcher #(
     input logic rst_n,
     
     input memory_filled,
-    output logic new_row_a,
-    output logic new_column_a,
-    output logic done_a,
-    
-    output logic new_row_b,
-    output logic new_column_b,
-    output logic done_b,
-    
-    
+
     // Matirx A memory
     output logic [$clog2(MATRIX_A_MEM_DEPTH)-1:0] rd_address_a,
     input logic [MATRIX_MEM_WIDTH-1:0] read_data_a,
@@ -32,33 +24,12 @@ module row_column_fetcher #(
     output logic [$clog2(MATRIX_B_MEM_DEPTH)-1:0] rd_address_b,
     input logic [MATRIX_MEM_WIDTH-1:0] read_data_b,
     
-    //Mult 1
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_1_a,
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_1_b,
-    output logic mult_1_en,
-    input logic [MATRIX_MEM_WIDTH-1:0] mult_1_out,
-    input logic mult_1_busy,
-    
-    //Mult 2
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_2_a,
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_2_b,
-    output logic mult_2_en,
-    input logic [MATRIX_MEM_WIDTH-1:0] mult_2_out,
-    input logic mult_2_busy,
-    
-    //Mult 3
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_3_a,
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_3_b,
-    output logic mult_3_en,
-    input logic [MATRIX_MEM_WIDTH-1:0] mult_3_out,
-    input logic mult_3_busy,
-    
-    //Mult 4
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_4_a,
-    output logic [MATRIX_MEM_WIDTH-1:0] mult_4_b,
-    output logic mult_4_en,
-    input logic [MATRIX_MEM_WIDTH-1:0] mult_4_out,
-    input logic mult_4_busy
+    //Mult 
+    output logic [MATRIX_MEM_WIDTH-1:0] mult_a,
+    output logic [MATRIX_MEM_WIDTH-1:0] mult_b,
+    output logic mult_start,
+    input logic [MATRIX_MEM_WIDTH-1:0] mult_out,
+    input logic mult_done
 );
 
 typedef enum logic [0:0] {
@@ -68,65 +39,56 @@ typedef enum logic [0:0] {
 
 state_t state, next_state;
 
-logic [$clog2(MATRIX_A_MEM_DEPTH) -1:0] counter_a;
-logic [$clog2(MATRIX_A_ROWS)-1:0] row_counter_a;
-logic [$clog2(MATRIX_A_COLUMNS)-1:0] column_counter_a;
+localparam row_offset_width = $clog2((MATRIX_B_ROWS-1)*(MATRIX_B_COLUMNS-1))-1;
+localparam counter_width = $clog2(MATRIX_A_ROWS)+$clog2(MATRIX_B_COLUMNS)+$clog2(MATRIX_B_ROWS)-1;
 
-logic [$clog2(MATRIX_B_MEM_DEPTH) -1:0] counter_b;
-logic [$clog2(MATRIX_B_ROWS)-1:0] row_counter_b;
-logic [$clog2(MATRIX_B_COLUMNS)-1:0] column_counter_b;
+// One counter, bit slicing is used to figure out what row/column is currently being processed  
+logic [counter_width:0] counter;
+logic [row_offset_width:0] row_offset; // Offset to get the correct row when going though columns in matrix B
+
 
 always_ff @(posedge clk) begin
     if(!rst_n) begin
         state <= IDLE;
-        counter_a <= 'b0;
-        row_counter_a <= 'b0;
-        column_counter_a <= 'b0;
-        counter_b <= 'b0;
-        row_counter_b <= 'b0;
-        column_counter_b <= 'b0;
+        counter <= 'b0;
+        row_offset <= 'b0;
     end
     else begin
         state <= next_state;
-        if(row_counter_a == MATRIX_A_ROWS - 1) row_counter_a <= 'b0;
-        else row_counter_a <= row_counter_a <= 'b1;
-        if(column_counter_a == MATRIX_A_COLUMNS - 1) column_counter_a <= 'b0;
-        else column_counter_a <= column_counter_a <= 'b1;
-        if(counter_a == MATRIX_A_MEM_DEPTH - 1) counter_a <= 'b0;
-        else counter_a <= counter_a <= 'b1;
-        
-        if(row_counter_b == MATRIX_B_ROWS - 1) row_counter_b <= 'b0;
-        else row_counter_b <= row_counter_b <= 'b1;
-        if(column_counter_b == MATRIX_B_COLUMNS - 1) column_counter_b <= 'b0;
-        else column_counter_b <= column_counter_b <= 'b1;
-        if(counter_b == MATRIX_B_MEM_DEPTH - 1) counter_b <= 'b0;
-        else counter_b <= counter_b <= 'b1;
+        if(counter == '1) counter <= 'b0;
+        else counter <= counter <= 'b1; 
+        if(counter [MATRIX_B_ROWS-1:0] == '0) row_offset <= '0;
+        else row_offset <= row_offset + row_offset_width'(MATRIX_B_ROWS - 1);
     end
 end
 
 
 always_ff @(posedge clk) begin
-    new_row_a <= 1'b0;
-    new_column_a <= 1'b0;
-    done_a <= 1'b0;
-    new_row_b <= 1'b0;
-    new_column_b <= 1'b0;
-    done_b <= 1'b0;
-    
     case(state)
         IDLE: begin 
         end
         COUNT: begin
-            if(row_counter_a == MATRIX_A_ROWS - 1) new_row_a <= 1'b1;
-            if(column_counter_a == MATRIX_A_COLUMNS - 1) new_column_a <= 'b1;
-            if(counter_a == MATRIX_A_MEM_DEPTH - 1) done_a <= 'b1;
-            if(row_counter_b == MATRIX_B_ROWS - 1) new_row_b <= 1'b1;
-            if(column_counter_b == MATRIX_B_COLUMNS - 1) new_column_b <= 'b1;
-            if(counter_b == MATRIX_B_MEM_DEPTH - 1) done_b <= 'b1;
+            rd_address_a <= counter[counter_width :counter_width-$clog2(MATRIX_A_ROWS)+1] + counter [MATRIX_B_ROWS-1:0];
+            rd_address_b <= counter[counter_width-$clog2(MATRIX_A_ROWS):counter_width-$clog2(MATRIX_A_ROWS)-$clog2(MATRIX_B_COLUMNS)+1] + counter [MATRIX_B_ROWS-1:0];
         end
     endcase
 
 end
 
+always_comb begin
+    next_state = state;
+    case (state)
+        IDLE: begin
+            if (memory_filled == 1'b1) begin
+                next_state = COUNT;
+            end
+        end
+        COUNT: begin
+            if(counter == '1) begin
+                next_state = IDLE;
+            end
+        end
+    endcase
+end
 
 endmodule
