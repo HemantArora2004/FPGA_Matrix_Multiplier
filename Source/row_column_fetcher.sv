@@ -39,17 +39,17 @@ typedef enum logic [0:0] {
 
 state_t state, next_state;
 
-localparam row_a_cnt_width    = $clog2(MATRIX_A_ROWS)-1;
-localparam row_a_offset_width = $clog2(MATRIX_A_MEM_DEPTH)-1;
-localparam col_b_cnt_width    = $clog2(MATRIX_B_COLUMNS)-1;
-localparam col_b_offset_width = $clog2(MATRIX_B_MEM_DEPTH)-1;
-localparam counter_width      = $clog2(MATRIX_B_ROWS)-1;
+localparam row_a_cnt_width    = $clog2(MATRIX_A_ROWS);
+localparam row_a_offset_width = $clog2(MATRIX_A_MEM_DEPTH);
+localparam col_b_cnt_width    = MATRIX_B_COLUMNS > 1 ? $clog2(MATRIX_B_COLUMNS) : 1;
+localparam col_b_offset_width = $clog2(MATRIX_B_MEM_DEPTH);
+localparam counter_width      = $clog2(MATRIX_B_ROWS);
 
-logic [row_a_cnt_width:0] row_a_cnt; 
-logic [row_a_offset_width:0] row_a_offset;
-logic [col_b_cnt_width:0] col_b_cnt;
-logic [col_b_offset_width:0] col_b_offset;
-logic [counter_width:0] counter;
+logic [row_a_cnt_width-1:0] row_a_cnt; 
+logic [row_a_offset_width-1:0] row_a_offset;
+logic [col_b_cnt_width-1:0] col_b_cnt;
+logic [col_b_offset_width-1:0] col_b_offset;
+logic [counter_width-1:0] counter;
 
 
 always_ff @(posedge clk) begin
