@@ -70,7 +70,7 @@ dual_port_ram #(MATRIX_B_MEM_DEPTH, MATRIX_MEM_WIDTH)  ram_b(
     .write_en(write_en_b)
 );
 
-// Matirx B memory  
+// Matirx C memory  
 dual_port_ram #(MATRIX_C_MEM_DEPTH, MATRIX_MEM_WIDTH)  ram_c(
     .wr_clk(clk),
     .rd_clk(clk),

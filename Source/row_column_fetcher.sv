@@ -39,26 +39,56 @@ typedef enum logic [0:0] {
 
 state_t state, next_state;
 
-localparam row_offset_width = $clog2((MATRIX_B_ROWS-1)*(MATRIX_B_COLUMNS-1))-1;
-localparam counter_width = $clog2(MATRIX_A_ROWS)+$clog2(MATRIX_B_COLUMNS)+$clog2(MATRIX_B_ROWS)-1;
+localparam row_a_cnt_width    = $clog2(MATRIX_A_ROWS)-1;
+localparam row_a_offset_width = $clog2(MATRIX_A_MEM_DEPTH)-1;
+localparam col_b_cnt_width    = $clog2(MATRIX_B_COLUMNS)-1;
+localparam col_b_offset_width = $clog2(MATRIX_B_MEM_DEPTH)-1;
+localparam counter_width      = $clog2(MATRIX_B_ROWS)-1;
 
-// One counter, bit slicing is used to figure out what row/column is currently being processed  
+logic [row_a_cnt_width:0] row_a_cnt; 
+logic [row_a_offset_width:0] row_a_offset;
+logic [col_b_cnt_width:0] col_b_cnt;
+logic [col_b_offset_width:0] col_b_offset;
 logic [counter_width:0] counter;
-logic [row_offset_width:0] row_offset; // Offset to get the correct row when going though columns in matrix B
 
 
 always_ff @(posedge clk) begin
     if(!rst_n) begin
         state <= IDLE;
+        row_a_cnt <= 'b0;
+        row_a_offset <= 'b0;
+        col_b_cnt <= 'b0;
+        col_b_offset <= 'b0;
         counter <= 'b0;
-        row_offset <= 'b0;
     end
     else begin
         state <= next_state;
-        if(counter == '1) counter <= 'b0;
-        else counter <= counter <= 'b1; 
-        if(counter [MATRIX_B_ROWS-1:0] == '0) row_offset <= '0;
-        else row_offset <= row_offset + row_offset_width'(MATRIX_B_ROWS - 1);
+        if(state == COUNT) begin
+            if(counter == MATRIX_B_ROWS-1) begin
+                counter <= 'b0;
+                col_b_offset <= 'b0;
+                col_b_cnt <= col_b_cnt + 'b1;
+            end
+            else begin 
+                counter <= counter + 'b1;
+                col_b_offset <= col_b_offset + col_b_offset_width'(MATRIX_B_COLUMNS-1);
+            end
+            
+            if(col_b_cnt == MATRIX_B_COLUMNS-1 && counter == MATRIX_B_ROWS-1) begin
+                col_b_cnt <= 'b0;
+                row_a_cnt <= row_a_cnt + 'b1;
+                row_a_offset <= row_a_offset + row_a_offset_width'(MATRIX_A_COLUMNS);
+            end
+
+            
+            if(row_a_cnt == MATRIX_A_ROWS-1 && col_b_cnt == MATRIX_B_COLUMNS-1 && counter == MATRIX_B_ROWS-1) begin
+                row_a_cnt <= 'b0;
+                row_a_offset <= 'b0;
+                col_b_cnt <= 'b0;
+                col_b_offset <= 'b0;
+                counter <= 'b0;
+            end
+        end
     end
 end
 
@@ -66,10 +96,12 @@ end
 always_ff @(posedge clk) begin
     case(state)
         IDLE: begin 
+            rd_address_a <= 'b0;
+            rd_address_b <= 'b0;
         end
         COUNT: begin
-            rd_address_a <= counter[counter_width :counter_width-$clog2(MATRIX_A_ROWS)+1] + counter [MATRIX_B_ROWS-1:0];
-            rd_address_b <= counter[counter_width-$clog2(MATRIX_A_ROWS):counter_width-$clog2(MATRIX_A_ROWS)-$clog2(MATRIX_B_COLUMNS)+1] + counter [MATRIX_B_ROWS-1:0];
+            rd_address_a <= row_a_offset + counter;
+            rd_address_b <= col_b_cnt + col_b_offset + counter;
         end
     endcase
 
@@ -84,7 +116,7 @@ always_comb begin
             end
         end
         COUNT: begin
-            if(counter == '1) begin
+            if(row_a_cnt == MATRIX_A_ROWS-1 && col_b_cnt == MATRIX_B_COLUMNS-1 && counter == MATRIX_B_ROWS-1) begin
                 next_state = IDLE;
             end
         end

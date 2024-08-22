@@ -1,5 +1,6 @@
 `timescale 1ns / 1ps
 module memory_access_control #(parameter MATRIX_A_MEM_DEPTH = 64, MATRIX_B_MEM_DEPTH = 64, MATRIX_MEM_WIDTH = 32)(
+    input logic clk,
     input logic rst_n,
     // All clocks are the same
     
@@ -16,7 +17,6 @@ module memory_access_control #(parameter MATRIX_A_MEM_DEPTH = 64, MATRIX_B_MEM_D
     output logic write_en_b,
     
     // Input stream
-    input logic data_clk,
     input logic data_valid,
     input logic [31:0] data
 );
@@ -33,7 +33,7 @@ logic [$clog2(MATRIX_B_MEM_DEPTH)-1:0] addr_b;
 
 
 
-always_ff @(posedge data_clk) begin
+always_ff @(posedge clk) begin
     if(!rst_n) begin
         addr_a <=  'b0;
         addr_b <= 'b0;
@@ -52,7 +52,7 @@ always_ff @(posedge data_clk) begin
     end
 end
 
-always_ff @(posedge data_clk) begin
+always_ff @(posedge clk) begin
     write_en_a <= 1'b0;
     write_en_b <= 1'b0;
     write_data_a <= 'b0;
