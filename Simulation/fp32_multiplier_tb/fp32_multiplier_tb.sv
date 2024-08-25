@@ -16,6 +16,7 @@ logic rst_n;
 logic start;
 logic [31:0] a;
 logic [31:0] b;
+logic [31:0] result;
 logic done;
 
 int operand_index;
@@ -46,6 +47,7 @@ always begin
     clk <= 1; #5;
     clk <= 0; #5;
 end
+
 
 
 
