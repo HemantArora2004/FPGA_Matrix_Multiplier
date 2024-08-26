@@ -6,8 +6,8 @@ localparam OPERANDS = 6;
 localparam PRODUCTS = OPERANDS/2;
 localparam MEM_WIDTH = 32;
 
-logic [MEM_WIDTH-1:0] memory_operands [OPERANDS-1:0]; 
-logic [MEM_WIDTH-1:0] memory_products [PRODUCTS-1:0]; 
+logic [31:0] memory_operands [11:0]; 
+logic [31:0] memory_products [2:0]; 
 
 logic error;
 
@@ -23,8 +23,8 @@ int operand_index;
 int product_index;
 
 initial begin
-        $readmemh("memory_operands.mem", memory_operands);
-        $readmemh("memory_products.mem", memory_products);
+        $readmemb("memory_operands.mem", memory_operands);
+        $readmemb("memory_products.mem", memory_products);
         start <= 1'b0;
         operand_index <= 0;
         product_index <= 0;
@@ -32,11 +32,14 @@ initial begin
         rst_n <= 1; #10;
         
         while(operand_index < OPERANDS || product_index < PRODUCTS) begin
-            if(operand_index < OPERANDS) begin
+            if(operand_index < OPERANDS - 1) begin
                 start <= 1'b1;
                 a <= memory_operands[operand_index];
                 b <= memory_operands[operand_index + 1];
                 operand_index = operand_index + 2;
+            end
+            else begin 
+                start <= 1'b0;
             end
             
             if(done) begin
@@ -44,6 +47,7 @@ initial begin
                 if(result != memory_products[product_index]) error <= 1'b1;
                 else  error <= 1'b0;
             end
+            #10;
         end
         
         start <= 1'b0;
