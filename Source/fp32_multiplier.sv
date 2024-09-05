@@ -12,6 +12,8 @@ module fp32_mult_pipelined(
     output logic underflow      // Underflow flag
 );
 
+logic [5:0] leading_zeros;
+
     // Stage 1: Extract components and prepare for multiplication
     typedef struct {
         logic sign_a, sign_b;
@@ -42,7 +44,7 @@ module fp32_mult_pipelined(
     // Stage 2: Multiply mantissas and add exponents
     typedef struct {
         logic sign_result;
-        logic [8:0] exponent_sum;  // 9 bits to handle overflow
+        logic [7:0] exponent_sum;  // 9 bits to handle overflow
         logic [47:0] mantissa_mult;
         logic enable;
     } stage2_data_t;
@@ -54,7 +56,7 @@ module fp32_mult_pipelined(
             stage2_reg <= {default: 'b0};
         end else begin
             stage2_reg.sign_result <= stage1_reg.sign_a ^ stage1_reg.sign_b;
-            stage2_reg.exponent_sum <= stage1_reg.exponent_a + stage1_reg.exponent_b - 127;
+            stage2_reg.exponent_sum <= stage1_reg.exponent_a + stage1_reg.exponent_b - 8'd127;
             stage2_reg.mantissa_mult <= stage1_reg.mantissa_a * stage1_reg.mantissa_b;
             stage2_reg.enable <= 1'b1;
         end
@@ -71,23 +73,22 @@ module fp32_mult_pipelined(
     stage3_data_t stage3_reg;
 
     logic [47:0] mantissa_mult_shifted;
-    logic [7:0] exponent_final;
-    
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n || !stage2_reg.enable) begin
             stage3_reg <=  {default: 'b0};
         end else begin
             stage3_reg.enable <= 1'b1;
-            if (stage2_reg.mantissa_mult[47] == 1) begin
-                mantissa_mult_shifted = stage2_reg.mantissa_mult[46:24];
-                exponent_final = stage2_reg.exponent_sum + 1;
-            end else begin
-                mantissa_mult_shifted = stage2_reg.mantissa_mult[45:23];
-                exponent_final = stage2_reg.exponent_sum;
-            end
             stage3_reg.sign_result <= stage2_reg.sign_result;
-            stage3_reg.exponent_result <= exponent_final[7:0];
-            stage3_reg.mantissa_result <= mantissa_mult_shifted[22:0];
+            if(stage2_reg.mantissa_mult [47] == 1'b1) begin
+                stage3_reg.exponent_result <= stage2_reg.exponent_sum + 8'b1;
+                stage3_reg.mantissa_result <= stage2_reg.mantissa_mult [46:24];
+            end
+            else begin 
+                stage3_reg.exponent_result <= stage2_reg.exponent_sum;
+                stage3_reg.mantissa_result <= stage2_reg.mantissa_mult [45:23];
+            end
+            
+            
         end
     end
 
@@ -105,5 +106,8 @@ module fp32_mult_pipelined(
             underflow <= (stage3_reg.exponent_result <= 0);
         end
     end
+    
+
+
 
 endmodule
